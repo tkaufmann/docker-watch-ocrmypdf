@@ -72,8 +72,8 @@ inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to |
         if [ ! -z "${!cmdVarName}" ]; then
             after_cmd=($(echo ${!cmdVarName} | sed "s|%FULLFILE%|$fullfile|" | sed "s|%FILENAME%|$filename.pdf|"))
            
-            echo "${mycmd[@]}"
-            "${mycmd[@]}"
+            echo $after_cmd
+            eval "$after_cmd";
         else
             echo no WOCR_AFTER command set.
         fi
