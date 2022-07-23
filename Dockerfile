@@ -6,7 +6,7 @@ RUN apt-get update && \
 
 RUN curl https://rclone.org/install.sh | bash
 
-RUN curl https://github.com/tkaufmann/docker-watch-ocrmypdf/blob/master/watch.sh --output /watch.sh
+RUN curl https://raw.githubusercontent.com/tkaufmann/docker-watch-ocrmypdf/master/watch.sh --output /watch.sh
 
 RUN chmod +x /watch.sh
 ENTRYPOINT [ "/watch.sh" ]
