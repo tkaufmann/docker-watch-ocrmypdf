@@ -5,7 +5,7 @@
 
 WOCR_CONSUME_PATH=${WOCR_CONSUME_PATH:-/consume}
 
-inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to |
+inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to --exclude '/\.' |
     while read path action file; do
         subdirectory=""
 
