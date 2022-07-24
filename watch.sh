@@ -14,6 +14,7 @@ inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to --exclude '/\.' |
         fi
 
         fullfile=$path$file
+        originalfile=$fullfile
         extension="${file##*.}"
         filename="${file%.*}"
         tmpname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
@@ -79,6 +80,7 @@ inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to --exclude '/\.' |
         fi
 
         rm $fullfile
+        rm $originalfile
 
         echo Finished processing $filename
     done
