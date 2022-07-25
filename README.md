@@ -1,32 +1,57 @@
-
 # watch-ocrmypdf
 
-[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/mkuhlmann/watch-ocrmypdf.svg)](https://hub.docker.com/r/mkuhlmann/watch-ocrmypdf)
+This image allows you to monitor subfolders of a folder (/consume)
+for new files and to run scripts on them. It's been inspired by Manuel Kuhlmanns [docker-watch-ocrmypdf](https://github.com/mkuhlmann/docker-watch-ocrmypdf) and macOS' [Hazel](https://www.noodlesoft.com). The image contains a working installation of ocrmypdf making it a great platform for dealing with pdf files. 
 
-Small bash script that watches a directory (/consume), runs [ocrmypdf](https://github.com/jbarlow83/OCRmyPDF) on any supported files (.pdf, .jpg, .png) and executes a user-defined command afterwards (rclone is included in docker image to copy resulting file to various remotes)
+## Installation
 
+Run timkaufmann/watch-ocrmypdf and mount the directory that should be watched to /consume (or customize with $WOCR_CONSUME_PATH). Mount a directory containing your bash scripts to /scripts. Those scripts will
+be called by /watch.sh whenever it detects a change in a subfolder of /consume. Files in /consume itself will not be processed. 
 
-## Docker
+## Processing files
 
-Run mkuhlmann/watch-ocrmypdf and mount the directory that should be watched to /consume (or customize with $WOCR_CONSUME_PATH).
+/watch.sh will do some housekeeping before it calls your scripts. For one, it will make sure the new file has been saved completely.
 
-Set `$WOCR_CMD` to the command you wish to run after a file has been uploaded. This usually will be a ocrmypdf command. A placeholder named `%INFILE%` will be replaced by the input file name. You should save the output to `%OUTFILE%` which will be set to /tmp/ORIGINAL_FILENAME.
+It will also pass the following file information to your scripts (in this very order):
+- absolute path to the new file
+- filename including extension
+- file extension
+- parent folder name
+- inotify action name
 
-It is also possible to create subdirectories with corresponding `$WOCR_CMD_SUBDIRECTORYHERE` if you want to execute different ocr methods (e.g. clean up the image in one and keep the original image in another dir).
+## Example
 
-After `$WOCR_CMD` is finished you are able to set `$WOCR_AFTERCMD` or  `$WOCR_AFTERCMD_SUBDIRECTORYHERE`, which will be executed after the first command is finished to copy the file to a remove (rclone is included in image). If `$WOCR_AFTERCMD_SUBDIRECTORYHERE` is not set in a subdirectory the default `$WOCR_AFTERCMD` will be used. 
+Let's ocr pdfs from a scanner and upload them to a nextcloud folder. 
 
-See `docker-compose.yml` for an example that uses atmoz/sftp:alpine to provide a sftp server as remote for a document scanner and uploads the file to nextcloud afterwards.
+1. Create a subfolder named "Scanner" in the folder mounted to /consume.
+2. Make sure your scanner drops new scans to that folder.
+2. Set $WOCR_SCRIPT_Scanner to /scripts/scanner-script.sh
+3. Customize the scanner-script.sh provided in this repository according to your needs.
 
-# Contributing
+See `docker-compose.yml` for an example that provides for the neccessary nextcloud configuration. For security purposes that data is being stored in a .env file which is not part of this repository. 
 
-Any pull requests are *very* welcome.
+## Todo
 
-# License
+- [Optimize](https://stackoverflow.com/questions/16938153/how-to-printf-in-bash-with-multiple-arguments) the usage of printf in my own scripts.
+- Add [msmpt](https://marlam.de/msmtp/) for sending mail notifications. 
+
+## Contributing
+
+Any pull requests are welcome.
+
+## My own notes
+
+### Building
+
+```shell
+docker build -t timkaufmann/watch-ocrmypdf:latest --no-cache --push ./
+````
+
+## License
 
 The MIT License (MIT)
 
-Copyright (c) 2018-2020 Manuel Kuhlmann
+Copyright (c) 2022 Tim Kaufmann
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

@@ -1,15 +1,18 @@
 version: '3.5'
 
 services:
-  ocrmypdf:
-    container_name: ocrmypdf
+  walnut:
+    container_name: walnut
     image: timkaufmann/watch-ocrmypdf:latest
     volumes:
-      - /mnt/public/Scanner:/consume
+      - /mnt/public/Automagisch:/consume
+      - /root/git/docker-watch-ocrmypdf/scripts:/scripts
     environment:
-      - NEXTCLOUD_USER=${NEXTCLOUD_USER}
-      - NEXTCLOUD_PASSWORD=${NEXTCLOUD_PASSWORD}
-      - NEXTCLOUD_PATH=${NEXTCLOUD_PATH}
-      - WOCR_AFTERCMD=/copy.sh "%FULLFILE%" "%FILENAME%"
-      - WOCR_CMD=ocrmypdf -l eng+deu --rotate-pages --deskew --clean --skip-text --clean-final --jobs 2 --output-type pdfa --jbig2-lossy --optimize 3 %INFILE% %OUTFILE%
-      # - WOCR_CMD_onlyocr=ocrmypdf -l eng+deu --rotate-pages --jobs 2 --output-type pdfa %INFILE% %OUTFILE%
+      - CLOUD_TAQUIRI_PATH=${CLOUD_TAQUIRI_PATH}
+      - CLOUD_TAQUIRI_USER=${CLOUD_TAQUIRI_USER}
+      - CLOUD_TAQUIRI_PASS=${CLOUD_TAQUIRI_PASS}
+      - CLOUD_STB_PATH=${CLOUD_STB_PATH}
+      - CLOUD_STB_USER=${CLOUD_STB_USER}
+      - CLOUD_STB_PASS=${CLOUD_STB_PASS}
+      - WOCR_SCRIPT_Scanner=/scripts/scanner-script.sh
+      - WOCR_SCRIPT_TQAusgangsrechnungen=/scripts/tq-ausgangsrechnungen-script.sh

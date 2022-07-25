@@ -1,87 +1,54 @@
 #!/bin/bash
 
-# Das war im Originalscript, hat aber nie funktioniert
-# . /appenv/bin/activate
-
+# If set, use WOCR_CONSUME_PATH, else use /consume
 WOCR_CONSUME_PATH=${WOCR_CONSUME_PATH:-/consume}
+# Remove trailing slash if exists
+WOCR_CONSUME_PATH=${WOCR_CONSUME_PATH%/}
 
 inotifywait -r -m $WOCR_CONSUME_PATH -e create -e moved_to --exclude '/\.' |
-    while read path action file; do
+    while read -r folder action filename; do
+        # Is this a change within a subfolder?
         subdirectory=""
-
-        if [[ $path =~ ^$WOCR_CONSUME_PATH/(.*?)/$ ]]; then
+        if [[ "$folder" =~ ^$WOCR_CONSUME_PATH/(.*?)/$ ]];
+        then
             subdirectory=${BASH_REMATCH[1]}
-        fi
-
-        fullfile=$path$file
-        originalfile=$fullfile
-        extension="${file##*.}"
-        filename="${file%.*}"
-        tmpname=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
-
-        echo "$file was created. subdir=$subdirectory extension=$extension filename=$filename tmpname=$tmpname"
-
-        filesize=$(stat -c%s $fullfile)
-        echo "sleeping 2s"
-        sleep 2
-
-        while [[ $filesize -lt $(stat -c%s "$fullfile") ]]; do
-            filesize=$(stat -c%s "$fullfile")
-            echo "waiting for transfer to finish (size=$filesize)"
-            sleep 2
-        done
-
-        if [[ ! "$extension" =~ ^(pdf|jpg|jpeg|png|PDF|JPG|JPEG|PNG)$ ]]; then
-            echo $extension is not supported. Skipping.
+        else
+            echo "File action in root folder detected. Cannot handle that. Aborting"
             continue
         fi
 
-        if [ $extension != 'pdf' ]; then
-            echo $file is an image. running img2pdf
-            img2pdf $fullfile -o /tmp/$tmpname.pdf
-            rm $fullfile
+        file=$folder$filename
+        folder=${folder%/} # some more trailing slash removal
+        extension="${filename##*.}"
 
-            fullfile=/tmp/$tmpname.pdf
-            extension=pdf
-        fi
+        # Debugging output
+        # echo "WOCR_CONSUME_PATH: $WOCR_CONSUME_PATH"
+        # echo "folder: $folder"
+        # echo "action: $action"
+        # echo "filename: $filename"
+        # echo "extension: $extension"
+        # echo "file: $file"
+        # echo "subdirectory: $subdirectory"
 
-        # run ocr command
-        cmdVarName="WOCR_CMD"
-        if [ ! -z "$subdirectory" ]; then
-            cmdVarName="WOCR_CMD_$subdirectory"
-            if [ -z "${!cmdVarName}" ]; then
-                echo $cmdVarName is not set. Exiting.
-                continue
-            fi
-        fi
+        # Wait for filetransfer to complete
+        filesize=$(stat -c%s "$file")
+        sleep 1
+        while [[ $filesize -lt $(stat -c%s "$file") ]]; do
+            filesize=$(stat -c%s "$file")
+            echo "Waiting for transfer to finish (size=$filesize)."
+            sleep 1
+        done
 
-        ocr_cmd=$(echo ${!cmdVarName} | sed "s|%INFILE%|$fullfile|" | sed "s|%OUTFILE%|/tmp/$filename.pdf|")
-        fullfile=/tmp/$filename.pdf
-
-        # run ocr command
-        echo $ocr_cmd
-        $ocr_cmd
-
-        cmdVarName="WOCR_AFTERCMD"
-        if [ ! -z "$subdirectory" ]; then
-            cmdVarName="WOCR_AFTERCMD_$subdirectory"
-            if [ -z ${!cmdVarName} ]; then
-                echo $cmdVarName is not set. Using default.
-                cmdVarName="WOCR_AFTERCMD"
-            fi
-        fi
-
-        if [ ! -z "${!cmdVarName}" ]; then
-            after_cmd=$(echo ${!cmdVarName} | sed "s|%FULLFILE%|$fullfile|" | sed "s|%FILENAME%|$filename.pdf|")
-            echo $after_cmd
-            eval "$after_cmd";
+        # Run command for subfolder
+        scriptVarName="WOCR_SCRIPT_$subdirectory"
+        if [ -z "${!scriptVarName}" ];
+        then
+            echo "$scriptVarName is not set. Nothing to do."
+            continue
         else
-            echo no WOCR_AFTER command set.
+            scriptCmd=$(printf '%s\n' "${!scriptVarName}")
+            echo "Running $scriptCmd"
+            $scriptCmd "$file" "$filename" "$extension" "$folder" "$action"
         fi
 
-        rm $fullfile
-        rm $originalfile
-
-        echo Finished processing $filename
     done
-
